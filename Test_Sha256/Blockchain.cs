@@ -8,16 +8,20 @@ namespace Test_Sha256
 {
     public class Blockchain
     {
-        private static int diff = 30;
-        private double maxNonce = Math.Pow(2, 32);
-        private double target = Math.Pow(2, 256 - diff);
+        private static readonly int diff = 40;
+        private readonly double maxNonce = Math.Pow(2, 32);
+        private readonly double target = Math.Pow(2, 256 - diff);
 
-        public Block block { get; set; } = new Block("Genesis");
+        public Block block { get; set; } = new Block("Genesis", 0);
 
         public void add(Block newBlock)
         {
             if (block.next_Block == null)
+            {
                 block.next_Block = newBlock;
+                block.next_Block.previous_Block = block;
+                Console.WriteLine(block.ToString());
+            }
             else
             {
                 block.next_Block.addNewNext(newBlock);
@@ -26,17 +30,30 @@ namespace Test_Sha256
 
         public void mine(Block newBlock)
         {
-            for(int i = 0; i < this.maxNonce; i++)
+            for (var i = 0; i < maxNonce; i++)
             {
                 var parsed = Convert.ToDouble(newBlock.hash(false));
-                if (parsed <= this.target)
+                if (parsed <= target)
                 {
                     add(newBlock);
-                    Console.WriteLine(newBlock.ToString());
+                    //Console.WriteLine(newBlock.ToString());
                     break;
                 }
-                else
-                    newBlock.nonce += 1;
+
+                newBlock.nonce += 1;
+            }
+        }
+
+        public void showAllBlocks(Block block)
+        {
+            if (block.next_Block != null)
+            {
+                Console.WriteLine(block.ToString());
+                showAllBlocks(block.next_Block);
+            }
+            else
+            {
+                Console.WriteLine(block.ToString());
             }
         }
     }
