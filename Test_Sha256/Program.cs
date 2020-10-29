@@ -11,21 +11,16 @@ namespace Test_Sha256
     {
         static void Main(string[] args)
         {
-            Blockchain blockchain = new Blockchain();
-            for (int i = 0; i < 10; i++)
-            {
-                blockchain.mine(new Block("Block" + (i + 1)));
-            }
+            var blockchain = new Blockchain();
+            for (var i = 0; i <= 10; i++) blockchain.mine(new Block("Block" + (i + 1), i + 1));
 
-            while(blockchain.block.next_Block != null)
-            {
-                Console.WriteLine(blockchain.block.ToString());
-                blockchain.block = blockchain.block.next_Block;
-            }
+            //Console.WriteLine();
+            //Console.WriteLine("-------------------------");
+            //Console.WriteLine();
+
+            //blockchain.showAllBlocks(blockchain.block);
 
             Console.ReadKey();
         }
-
-
     }
 }
