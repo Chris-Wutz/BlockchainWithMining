@@ -1,0 +1,195 @@
+public class Block
+    {
+        public Block(DateTime timestamp, List<Transaction> transactions, string previousHash = "")
+        {
+            this.timestamp = timestamp.Date.Ticks;
+            this.transactions = transactions;
+            this.previousHash = previousHash;
+            hash = calculateHash();
+        }
+
+        public long timestamp { get; }
+        public string previousHash { get; set; } = string.Empty;
+        public List<Transaction> transactions { get; } = new List<Transaction>();
+        public string hash { get; set; } = string.Empty;
+        public long nonce { get; private set; }
+
+        public string calculateHash()
+        {
+            return Encryption.SHA256HexHashString(timestamp + string.Join(string.Empty, transactions) + nonce);
+        }
+
+        public void mineBlock(int difficulty)
+        {
+            while (hash.Substring(0, difficulty) != string.Concat(Enumerable.Repeat("0", difficulty)))
+            {
+                nonce += 1;
+                hash = calculateHash();
+            }
+
+            Console.WriteLine(ToString());
+        }
+
+        public override string ToString()
+        {
+            var allTransactions = "";
+            foreach (var transaction in transactions)
+                allTransactions +=
+                    $"{{From Adress: {transaction.fromAddress}; To Address: {transaction.toAddress}; Amount: {transaction.amount}}}\n";
+            allTransactions = allTransactions.Substring(0, allTransactions.Length - 1);
+            return
+                $"------------------\nTransactions:{allTransactions} \nPrevious Hash: {previousHash} \nBlock Hash: {hash}\nHashes: {nonce}\n------------------";
+        }
+    }
+    
+    --------------------------------------------------
+    
+    public class Blockchain
+    {
+        public Blockchain()
+        {
+            chain = new List<Block>();
+            chain.Add(createGenesisBlock());
+            difficulty = 4;
+            pendingTransactions = new List<Transaction>();
+            miningReward = 100;
+        }
+
+        public List<Block> chain { get; }
+        public int difficulty { get; }
+        public List<Transaction> pendingTransactions { get; private set; }
+        public int miningReward { get; }
+
+        public Block createGenesisBlock()
+        {
+            return new Block(new DateTime(1990, 3, 25),
+                new List<Transaction>(), "0");
+        }
+
+        public Block getLastBlock()
+        {
+            return chain[chain.Count - 1];
+        }
+
+        public void minePendingTransactions(string miningRewardAddress)
+        {
+            var block = new Block(DateTime.Now, pendingTransactions);
+            block.previousHash = getLastBlock().hash;
+            block.mineBlock(difficulty);
+
+            Console.WriteLine("Block successfully mined!");
+            chain.Add(block);
+
+            pendingTransactions = new List<Transaction>
+            {
+                new Transaction(string.Empty, miningRewardAddress, miningReward)
+            };
+        }
+
+        public void createTransaction(Transaction transaction)
+        {
+            pendingTransactions.Add(transaction);
+        }
+
+        public double getBalanceOfAddress(string address)
+        {
+            double balance = 0;
+
+            foreach (var block in chain)
+            foreach (var transaction in block.transactions)
+            {
+                if (transaction.fromAddress == address)
+                    balance -= transaction.amount;
+
+                if (transaction.toAddress == address)
+                    balance += transaction.amount;
+            }
+
+            return balance;
+        }
+
+        public bool isChainValid()
+        {
+            if (chain.Count == 0) return true;
+            for (var i = 1; i < chain.Count; i++)
+            {
+                var currentBlock = chain[i];
+                var previousBlock = chain[i - 1];
+
+                if (currentBlock.previousHash != previousBlock.hash)
+                    return false;
+
+                if (currentBlock.hash != currentBlock.calculateHash())
+                    return false;
+            }
+
+            return true;
+        }
+    }
+    
+    ----------------------------------------------
+    
+     public static class Encryption
+    {
+        public static string ToHex(byte[] bytes, bool upperCase)
+        {
+            var result = new StringBuilder(bytes.Length * 2);
+            for (var i = 0; i < bytes.Length; i++)
+                result.Append(bytes[i].ToString(upperCase ? "X2" : "x2"));
+            return result.ToString();
+        }
+
+        public static string SHA256HexHashString(string StringIn)
+        {
+            string hashString;
+            using (var sha256 = SHA256.Create())
+            {
+                var hash = sha256.ComputeHash(Encoding.Default.GetBytes(StringIn));
+                hashString = ToHex(hash, false);
+            }
+
+            return hashString;
+        }
+    }
+
+-----------------------------------
+public class Transaction
+    {
+        public Transaction(string fromAddress, string toAddress, double amount)
+        {
+            this.fromAddress = fromAddress;
+            this.toAddress = toAddress;
+            this.amount = amount;
+        }
+
+        public string fromAddress { get; set; } = string.Empty;
+        public string toAddress { get; set; } = string.Empty;
+        public double amount { get; set; }
+    }
+    
+    ---------------------------------
+    
+    private static void Main(string[] args)
+        {
+            var k = new keygenerater();
+            k.x();
+
+            var blockchain = new Blockchain();
+
+            blockchain.createTransaction(new Transaction("address1", "address2", 100));
+            blockchain.createTransaction(new Transaction("address2", "address1", 50));
+
+            Console.WriteLine("Starting mining");
+            blockchain.minePendingTransactions("my-address");
+
+            Console.WriteLine("\nCheck balance of my-address");
+            Console.WriteLine(blockchain.getBalanceOfAddress("my-address"));
+
+            Console.WriteLine("\nStarting mining again");
+            blockchain.minePendingTransactions("my-address");
+
+            Console.WriteLine("\nCheck balance of my-address");
+            Console.WriteLine(blockchain.getBalanceOfAddress("my-address"));
+
+            Console.ReadKey();
+        }
